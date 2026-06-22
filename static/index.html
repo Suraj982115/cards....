@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CardLib — Marriage & Callbreak</title>
+<style>
+  :root {
+    --bg:       #1a1a2e;
+    --surface:  #16213e;
+    --card-bg:  #0f3460;
+    --accent:   #e94560;
+    --green:    #00b894;
+    --gold:     #f9ca24;
+    --text:     #eee;
+    --muted:    #aaa;
+    --border:   #2d2d5a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  header { background: var(--surface); border-bottom: 2px solid var(--accent); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 1.5rem; color: var(--gold); letter-spacing: 2px; }
+  header span { color: var(--muted); font-size: 0.85rem; }
+
+  .main { display: grid; grid-template-columns: 320px 1fr; gap: 0; min-height: calc(100vh - 60px); }
+
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; max-height: calc(100vh - 60px); }
+  .sidebar h2 { color: var(--gold); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+
+  .game-btn { width: 100%; padding: 12px; border: 2px solid var(--border); background: transparent; color: var(--text); border-radius: 8px; cursor: pointer; font-size: 0.95rem; text-align: left; transition: all 0.2s; }
+  .game-btn:hover, .game-btn.active { border-color: var(--accent); background: rgba(233,69,96,0.1); color: var(--accent); }
+  .game-btn .tag { font-size: 0.75rem; color: var(--muted); display: block; margin-top: 2px; }
+
+  .count-row { display: flex; align-items: center; gap: 10px; }
+  .count-row button { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 1.1rem; cursor: pointer; }
+  .count-row button:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+  .count-row button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .count-row .count-display { font-size: 1.1rem; font-weight: 700; min-width: 24px; text-align: center; }
+  .count-hint { font-size: 0.75rem; color: var(--muted); }
+
+  .player-inputs { display: flex; flex-direction: column; gap: 8px; }
+  .player-inputs input { background: var(--card-bg); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; }
+  .player-inputs input::placeholder { color: var(--muted); }
+  .player-inputs input.error { border-color: var(--accent); }
+
+  .form-error { font-size: 0.8rem; color: var(--accent); min-height: 18px; }
+
+  .btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #c73652; }
+  .btn-success { background: var(--green); color: white; }
+  .btn-success:hover { filter: brightness(0.9); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+  .btn-gold { background: var(--gold); color: #222; }
+  .btn-gold:hover { filter: brightness(0.92); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-small { padding: 6px 10px; font-size: 0.78rem; }
+
+  .session-box { background: var(--card-bg); border-radius: 8px; padding: 10px; font-size: 0.8rem; color: var(--muted); word-break: break-all; }
+  .session-box strong { color: var(--text); }
+
+  .game-area { padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; max-height: calc(100vh - 60px); }
+
+  .message-bar { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--gold); padding: 10px 16px; border-radius: 6px; font-size: 0.9rem; color: var(--gold); min-height: 42px; }
+  .message-bar.error { border-left-color: var(--accent); color: var(--accent); }
+
+  .scores-panel { display: flex; gap: 12px; flex-wrap: wrap; }
+  .score-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; min-width: 110px; text-align: center; }
+  .score-card.active { border-color: var(--gold); box-shadow: 0 0 12px rgba(249,202,36,0.2); }
+  .score-card .name { font-size: 0.8rem; color: var(--muted); }
+  .score-card .pts { font-size: 1.6rem; font-weight: 700; color: var(--gold); }
+  .score-card .bid-info { font-size: 0.75rem; color: var(--green); margin-top: 2px; }
+
+  .phase-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+  .phase-bidding  { background: rgba(249,202,36,0.2); color: var(--gold); }
+  .phase-playing  { background: rgba(0,184,148,0.2);  color: var(--green); }
+  .phase-ended    { background: rgba(233,69,96,0.2);  color: var(--accent); }
+
+  .hands-section h3 { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .player-hand { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .player-hand.current { border-color: var(--green); }
+  .player-hand .hand-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .player-hand .hand-name { font-weight: 600; }
+  .player-hand .hand-count { font-size: 0.8rem; color: var(--muted); }
+
+  .cards-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .card { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 52px; height: 74px; background: #fff; border-radius: 6px; color: #222; font-weight: 700; font-size: 0.85rem; cursor: default; border: 2px solid transparent; transition: transform 0.15s, box-shadow 0.15s; position: relative; user-select: none; }
+  .card.red { color: #c0392b; }
+  .card.playable { cursor: pointer; border-color: var(--green); }
+  .card.playable:hover { transform: translateY(-6px); box-shadow: 0 8px 20px rgba(0,184,148,0.4); }
+  .card.selected { border-color: var(--accent); transform: translateY(-8px); box-shadow: 0 8px 20px rgba(233,69,96,0.4); }
+  .card .rank { font-size: 1rem; line-height: 1; }
+  .card .suit-sym { font-size: 1.1rem; line-height: 1; }
+
+  /* Table — circular layout to feel like a real card table */
+  .table-felt { background: radial-gradient(ellipse at center, #1b4d3e 0%, #0f3027 100%); border: 6px solid #3d2817; border-radius: 50%; aspect-ratio: 1.6/1; max-width: 560px; margin: 0 auto; position: relative; display: flex; align-items: center; justify-content: center; padding: 30px; }
+  .table-felt .table-cards-inner { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  .table-felt .empty-table-text { color: rgba(255,255,255,0.35); font-size: 0.85rem; text-align: center; }
+  .table-play { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .table-play .pname { font-size: 0.7rem; color: #ddd; background: rgba(0,0,0,0.4); padding: 1px 6px; border-radius: 4px; }
+  .table-label { text-align: center; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .stock-info { text-align: center; color: var(--muted); font-size: 0.78rem; margin-top: 8px; }
+
+  .action-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .action-panel h3 { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .bid-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bid-btn { width: 44px; height: 44px; border-radius: 6px; border: 2px solid var(--border); background: transparent; color: var(--text); font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .bid-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .bid-btn.selected { background: var(--gold); color: #222; border-color: var(--gold); }
+  .play-btn { width: 100%; }
+  .action-row { display: flex; gap: 10px; }
+  .action-row .btn { flex: 1; }
+
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; }
+  .overlay.show { display: flex; }
+  .modal { background: var(--surface); border: 2px solid var(--gold); border-radius: 16px; padding: 32px; text-align: center; max-width: 420px; width: 90%; max-height: 80vh; overflow-y: auto; }
+  .modal h2 { color: var(--gold); font-size: 1.8rem; margin-bottom: 8px; }
+  .modal .winner-name { font-size: 2.2rem; font-weight: 700; color: var(--accent); margin: 12px 0; }
+  .modal .final-scores { margin: 16px 0; }
+  .modal .score-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 1rem; }
+  .modal .score-row:last-child { border-bottom: none; }
+
+  .meld-results { background: var(--card-bg); border-radius: 8px; padding: 12px; margin-top: 8px; }
+  .meld-player { margin-bottom: 8px; }
+  .meld-player strong { color: var(--gold); }
+  .meld-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px; }
+  .meld-marriage { background: rgba(249,202,36,0.2); color: var(--gold); }
+  .meld-sequence { background: rgba(0,184,148,0.2); color: var(--green); }
+  .meld-unmelded { background: rgba(233,69,96,0.15); color: var(--accent); }
+
+  .rules-box { background: var(--card-bg); border-radius: 8px; padding: 12px; font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+  .rules-box h4 { color: var(--text); margin-bottom: 6px; }
+  .rules-box ul { padding-left: 16px; }
+
+  .empty-state { text-align: center; color: var(--muted); padding: 40px; }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+  /* History panel */
+  .history-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .history-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .history-panel h3 { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+  .history-list { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  .history-entry { display: flex; gap: 8px; font-size: 0.78rem; padding: 5px 8px; border-radius: 5px; background: var(--card-bg); align-items: baseline; }
+  .history-entry .h-turn { color: var(--muted); min-width: 26px; }
+  .history-entry .h-time { color: var(--muted); min-width: 70px; font-family: monospace; font-size: 0.7rem; }
+  .history-entry .h-player { color: var(--gold); font-weight: 600; min-width: 60px; }
+  .history-entry .h-action { color: var(--green); min-width: 70px; }
+  .history-entry .h-detail { color: var(--text); }
+  .history-empty { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🃏 CardLib</h1>
+  <span>Marriage &amp; Callbreak — Python OOP Project</span>
+</header>
+
+<div class="main">
+  <aside class="sidebar">
+    <div>
+      <h2>Select Game</h2>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+        <button class="game-btn active" id="btn-marriage" onclick="selectGame('marriage')">
+          Marriage
+          <span class="tag" id="marriage-tag">2-6 players · Throw &amp; meld</span>
+        </button>
+        <button class="game-btn" id="btn-callbreak" onclick="selectGame('callbreak')">
+          Callbreak
+          <span class="tag">4 players · 13 cards · Tricks</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="count-section">
+      <h2>Number of Players</h2>
+      <div class="count-row">
+        <button id="count-minus" onclick="changeCount(-1)">−</button>
+        <span class="count-display" id="count-display">3</span>
+        <button id="count-plus" onclick="changeCount(1)">+</button>
+      </div>
+      <div class="count-hint" id="count-hint"></div>
+    </div>
+
+    <div>
+      <h2>Player Names</h2>
+      <div class="player-inputs" id="player-inputs"></div>
+      <div class="form-error" id="form-error"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="startGame()">▶ Start New Game</button>
+
+    <div id="session-info" style="display:none">
+      <h2>Session</h2>
+      <div class="session-box" id="session-display"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-ghost" style="flex:1" onclick="restartGame()">↺ Restart</button>
+        <button class="btn btn-ghost" style="flex:1" onclick="exportHistory()">⬇ Export</button>
+      </div>
+    </div>
+
+    <div id="rules-container"></div>
+  </aside>
+
+  <main class="game-area" id="game-area">
+    <div class="empty-state">
+      <div class="icon">🃏</div>
+      <p>Choose player count, enter names, and start a game.</p>
+    </div>
+  </main>
+</div>
+
+<div class="overlay" id="result-overlay">
+  <div class="modal">
+    <h2>🏆 Game Over!</h2>
+    <div class="winner-name" id="modal-winner"></div>
+    <div class="final-scores" id="modal-scores"></div>
+    <div id="modal-melds"></div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-ghost" style="flex:1" onclick="exportHistory()">⬇ Export Replay</button>
+      <button class="btn btn-primary" style="flex:1" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentGame    = 'marriage';
+let sessionId      = null;
+let gameState      = null;
+let selectedCard   = null;
+let selectedBid    = null;
+let playerCount    = 3;
+let gameLimits     = { marriage: {min:2,max:6}, callbreak: {min:4,max:4} };
+
+const SUIT_SYMBOLS = { Hearts:'♥', Diamonds:'♦', Clubs:'♣', Spades:'♠' };
+const RED_SUITS    = new Set(['Hearts','Diamonds']);
+const API = '';
+
+// ─── Init: fetch player-count limits from server ───────────────────────────
+async function loadGameInfo() {
+  try {
+    const res = await fetch(`${API}/games`);
+    const data = await res.json();
+    gameLimits.marriage  = { min: data.info.marriage.min_players,  max: data.info.marriage.max_players };
+    gameLimits.callbreak = { min: data.info.callbreak.min_players, max: data.info.callbreak.max_players };
+  } catch(e) { /* fall back to defaults already set */ }
+  selectGame('marriage');
+}
+
+// ─── Game selection ───────────────────────────────────────────────────────
+function selectGame(game) {
+  currentGame = game;
+  document.getElementById('btn-marriage').classList.toggle('active',  game==='marriage');
+  document.getElementById('btn-callbreak').classList.toggle('active', game==='callbreak');
+
+  const limits = gameLimits[game];
+  playerCount = Math.max(limits.min, Math.min(playerCount, limits.max));
+  if (game === 'callbreak') playerCount = 4;
+
+  document.getElementById('count-section').style.display = (limits.min === limits.max) ? 'none' : 'block';
+  updateCountDisplay();
+  renderPlayerInputs();
+  renderRules();
+  resetUI();
+}
+
+function changeCount(delta) {
+  const limits = gameLimits[currentGame];
+  playerCount = Math.max(limits.min, Math.min(playerCount + delta, limits.max));
+  updateCountDisplay();
+  renderPlayerInputs();
+}
+
+function updateCountDisplay() {
+  const limits = gameLimits[currentGame];
+  document.getElementById('count-display').textContent = playerCount;
+  document.getElementById('count-minus').disabled = playerCount <= limits.min;
+  document.getElementById('count-plus').disabled  = playerCount >= limits.max;
+  document.getElementById('count-hint').textContent = `Range: ${limits.min}-${limits.max} players`;
+}
+
+function renderPlayerInputs() {
+  const defaultNames = ['Ram','Sita','Hari','Gita','Kumar','Maya'];
+  const container = document.getElementById('player-inputs');
+  const existing = Array.from(container.querySelectorAll('input')).map(i => i.value);
+  container.innerHTML = '';
+  for (let i = 0; i < playerCount; i++) {
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = existing[i] !== undefined && existing[i] !== '' ? existing[i] : (defaultNames[i] || `Player ${i+1}`);
+    inp.placeholder = `Player ${i+1} name`;
+    inp.id = `p${i}`;
+    inp.oninput = () => { inp.classList.remove('error'); document.getElementById('form-error').textContent=''; };
+    container.appendChild(inp);
+  }
+}
+
+function getPlayerNames() {
+  return Array.from({length: playerCount}, (_,i) => document.getElementById(`p${i}`).value.trim());
+}
+
+function validateNames(names) {
+  document.getElementById('form-error').textContent = '';
+  document.querySelectorAll('.player-inputs input').forEach(i => i.classList.remove('error'));
+
+  if (names.some(n => !n)) {
+    document.getElementById('form-error').textContent = 'All player names must be filled in.';
+    document.querySelectorAll('.player-inputs input').forEach((inp,i) => { if(!names[i]) inp.classList.add('error'); });
+    return false;
+  }
+  const lower = names.map(n => n.toLowerCase());
+  if (new Set(lower).size !== lower.length) {
+    document.getElementById('form-error').textContent = 'Player names must be unique.';
+    return false;
+  }
+  return true;
+}
+
+function renderRules() {
+  const el = document.getElementById('rules-container');
+  if (currentGame === 'marriage') {
+    el.innerHTML = `<div class="rules-box">
+      <h4>Marriage Rules</h4>
+      <ul>
+        <li>2-6 players (cards/player adjusts automatically)</li>
+        <li>On your turn: throw a card to the table, then draw a new one</li>
+        <li>K+Q same suit = <em>Marriage</em> (+3 pts)</li>
+        <li>3-4 consecutive same suit = <em>Sequence</em> (+2 pts)</li>
+        <li>Unmelded cards = −1 pt each</li>
+        <li>Declare on your turn instead of throwing, when ready!</li>
+      </ul>
+    </div>`;
+  } else {
+    el.innerHTML = `<div class="rules-box">
+      <h4>Callbreak Rules</h4>
+      <ul>
+        <li>4 players, 13 cards each</li>
+        <li>♠ Spades are always trump</li>
+        <li>Bid how many tricks you'll win</li>
+        <li>Must follow suit; must play ♠ if can't</li>
+        <li>Meet bid → +bid; miss → −bid</li>
+        <li>5 rounds total</li>
+      </ul>
+    </div>`;
+  }
+}
+
+// ─── API calls ────────────────────────────────────────────────────────────
+async function startGame() {
+  const names = getPlayerNames();
+  if (!validateNames(names)) return;
+
+  try {
+    const res = await fetch(`${API}/games/${currentGame}/new`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({player_ids: names})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to start game');
+    sessionId = data.session_id;
+    gameState = data.state;
+    showSession();
+    render();
+  } catch(e) { showError(e.message); }
+}
+
+async function playMove(player_id, cards) {
+  try {
+    const res = await fetch(`${API}/games/${sessionId}/play`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({player_id, cards})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Invalid move');
+    gameState = data;
+    selectedCard = null;
+    selectedBid  = null;
+    render();
+    if (data.game_over) showResult(data);
+  } catch(e) { showError(e.message); }
+}
+
+async function restartGame() {
+  if (!sessionId) return;
+  try {
+    const res = await fetch(`${API}/games/${sessionId}/restart`, {method:'POST'});
+    const data = await res.json();
+    gameState = data.state;
+    selectedCard = null; selectedBid = null;
+    render();
+  } catch(e) { showError(e.message); }
+}
+
+async function exportHistory() {
+  if (!sessionId) return;
+  window.open(`${API}/games/${sessionId}/history/export`, '_blank');
+}
+
+// ─── Rendering ────────────────────────────────────────────────────────────
+function render() {
+  if (!gameState) return;
+  const area = document.getElementById('game-area');
+
+  const phase = gameState.phase;
+  const meta  = gameState.metadata || {};
+  const currentPlayer = gameState.current_player;
+  const players = Object.keys(gameState.scores);
+
+  let html = '';
+
+  html += `<div class="message-bar">${gameState.message}</div>`;
+
+  const roundInfo = currentGame === 'callbreak'
+    ? ` &nbsp;·&nbsp; Round ${gameState.round_num} / 5` : '';
+  html += `<div style="display:flex;align-items:center;gap:10px">
+    <span class="phase-badge phase-${phase}">${phase}</span>
+    <span style="color:var(--muted);font-size:0.85rem">
+      Turn: <strong style="color:var(--text)">${currentPlayer}</strong>${roundInfo}
+    </span>
+  </div>`;
+
+  html += '<div class="scores-panel">';
+  for (const p of players) {
+    const isActive = p === currentPlayer;
+    const bid = meta.bids?.[p];
+    const won = meta.tricks_won?.[p];
+    const bidInfo = (bid !== undefined) ? `Bid: ${bid} | Won: ${won ?? 0}` : '';
+    html += `<div class="score-card${isActive?' active':''}">
+      <div class="name">${p}</div>
+      <div class="pts">${gameState.scores[p]}</div>
+      ${bidInfo ? `<div class="bid-info">${bidInfo}</div>` : ''}
+    </div>`;
+  }
+  html += '</div>';
+
+  // Table — felt circle, cards thrown appear here
+  html += '<div class="table-label">Table</div>';
+  html += '<div class="table-felt"><div class="table-cards-inner">';
+  const trick = meta.current_trick;
+  if (currentGame === 'callbreak' && trick && trick.length > 0) {
+    for (const play of trick) {
+      html += `<div class="table-play"><div class="pname">${play.player}</div>${renderCard(play.card, false)}</div>`;
+    }
+  } else if (gameState.table && gameState.table.length > 0) {
+    for (const c of gameState.table) {
+      html += renderCard(c, false);
+    }
+  } else {
+    html += '<div class="empty-table-text">No cards on the table yet</div>';
+  }
+  html += '</div></div>';
+
+  if (currentGame === 'marriage' && meta.stock) {
+    html += `<div class="stock-info">Draw pile: ${meta.stock.length} cards remaining</div>`;
+  }
+
+  html += renderActionPanel(phase, currentPlayer, meta);
+
+  html += '<div class="hands-section"><h3>Hands</h3>';
+  for (const p of players) {
+    const hand = gameState.hands[p] || [];
+    const isCurrent = p === currentPlayer && phase !== 'ended';
+    html += `<div class="player-hand${isCurrent?' current':''}">
+      <div class="hand-header">
+        <span class="hand-name">${p} ${isCurrent?'← Your turn':''}</span>
+        <span class="hand-count">${hand.length} cards</span>
+      </div>
+      <div class="cards-row" id="hand-${p}">`;
+
+    for (const card of hand) {
+      const playable = isCurrent && phase === 'playing' && canPlay(card, p);
+      const isSel = selectedCard && selectedCard.suit === card.suit && selectedCard.rank === card.rank;
+      html += renderCard(card, playable, isSel, p);
+    }
+    html += '</div></div>';
+  }
+  html += '</div>';
+
+  if (phase === 'ended' && meta.melds && currentGame === 'marriage') {
+    html += renderMeldResults(meta.melds);
+  }
+
+  html += renderHistoryPanel(gameState.history || []);
+
+  area.innerHTML = html;
+}
+
+function renderCard(card, playable=false, selected=false, player=null) {
+  const sym  = SUIT_SYMBOLS[card.suit] || card.suit;
+  const red  = RED_SUITS.has(card.suit);
+  const cls  = ['card', red?'red':'', playable?'playable':'', selected?'selected':''].filter(Boolean).join(' ');
+  const onclick = playable ? `onclick="selectCardClick('${card.suit}','${card.rank}','${player}')"` : '';
+  return `<div class="${cls}" ${onclick} title="${card.rank} of ${card.suit}">
+    <span class="rank">${card.rank}</span>
+    <span class="suit-sym">${sym}</span>
+  </div>`;
+}
+
+function renderActionPanel(phase, currentPlayer, meta) {
+  let html = '<div class="action-panel"><h3>Your Action</h3>';
+
+  if (phase === 'bidding') {
+    html += `<p style="font-size:0.9rem;color:var(--muted);margin-bottom:10px">${currentPlayer}, choose your bid:</p>`;
+    html += '<div class="bid-buttons">';
+    for (let i = 1; i <= 13; i++) {
+      const sel = selectedBid === i;
+      html += `<button class="bid-btn${sel?' selected':''}" onclick="selectBid(${i})">${i}</button>`;
+    }
+    html += '</div>';
+    html += `<button class="btn btn-success play-btn" style="margin-top:12px" onclick="submitBid()" ${selectedBid===null?'disabled':''}>
+      ✓ Confirm Bid ${selectedBid !== null ? `(${selectedBid})` : ''}
+    </button>`;
+
+  } else if (phase === 'playing') {
+    if (currentGame === 'marriage') {
+      html += `<p style="font-size:0.9rem;color:var(--muted);margin-bottom:10px">
+        ${currentPlayer}: click a card below to throw it to the table, or declare.</p>`;
+      html += '<div class="action-row">';
+      if (selectedCard) {
+        html += `<button class="btn btn-success" onclick="throwCard('${currentPlayer}')">
+          ▶ Throw ${SUIT_SYMBOLS[selectedCard.suit]}${selectedCard.rank}
+        </button>`;
+      } else {
+        html += `<button class="btn btn-ghost" disabled>Select a card to throw</button>`;
+      }
+      html += `<button class="btn btn-gold" onclick="declare('${currentPlayer}')">🎴 Declare</button>`;
+      html += '</div>';
+    } else {
+      html += `<p style="font-size:0.9rem;color:var(--muted);margin-bottom:10px">
+        ${currentPlayer}: Click a highlighted card to select it, then play it.</p>`;
+      if (selectedCard) {
+        html += `<button class="btn btn-success play-btn" onclick="submitCard('${currentPlayer}')">
+          ▶ Play ${SUIT_SYMBOLS[selectedCard.suit]}${selectedCard.rank}
+        </button>`;
+      } else {
+        html += `<button class="btn btn-primary play-btn" disabled>Select a card above</button>`;
+      }
+    }
+  } else if (phase === 'ended') {
+    html += `<p style="color:var(--green)">🏆 Game finished! Check scores above.</p>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function renderMeldResults(melds) {
+  let html = '<div class="meld-results"><h3 style="color:var(--gold);margin-bottom:8px">Meld Results</h3>';
+  for (const [pid, meld] of Object.entries(melds)) {
+    html += `<div class="meld-player"><strong>${pid}</strong>: `;
+    for (const m of meld.marriages) {
+      const cards = m.map(c => `${SUIT_SYMBOLS[c.suit]}${c.rank}`).join('+');
+      html += `<span class="meld-tag meld-marriage">Marriage: ${cards}</span>`;
+    }
+    for (const s of meld.sequences) {
+      const cards = s.map(c => `${SUIT_SYMBOLS[c.suit]}${c.rank}`).join('-');
+      html += `<span class="meld-tag meld-sequence">Seq: ${cards}</span>`;
+    }
+    if (meld.unmelded.length) {
+      html += `<span class="meld-tag meld-unmelded">${meld.unmelded.length} unmelded</span>`;
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderHistoryPanel(history) {
+  let html = `<div class="history-panel">
+    <div class="history-panel-header">
+      <h3>Move History (${history.length})</h3>
+      <button class="btn btn-ghost btn-small" onclick="exportHistory()">⬇ Export .txt</button>
+    </div>
+    <div class="history-list">`;
+
+  if (history.length === 0) {
+    html += '<div class="history-empty">No moves yet.</div>';
+  } else {
+    for (const h of [...history].reverse()) {
+      const time = h.timestamp ? h.timestamp.split('T')[1].split('.')[0] : '';
+      html += `<div class="history-entry">
+        <span class="h-turn">#${h.turn}</span>
+        <span class="h-time">${time}</span>
+        <span class="h-player">${h.player_id}</span>
+        <span class="h-action">${h.action}</span>
+        <span class="h-detail">${h.detail}</span>
+      </div>`;
+    }
+  }
+  html += '</div></div>';
+  return html;
+}
+
+// ─── Interaction ──────────────────────────────────────────────────────────
+function canPlay(card, player) {
+  if (!gameState || gameState.phase !== 'playing') return false;
+  if (gameState.current_player !== player) return false;
+
+  if (currentGame === 'marriage') return true; // any card can be thrown on your turn
+
+  const led = gameState.metadata?.led_suit;
+  const hand = gameState.hands[player] || [];
+  if (!led) return true;
+
+  const sameSuit = hand.filter(c => c.suit === led);
+  if (sameSuit.length > 0) return card.suit === led;
+
+  const spades = hand.filter(c => c.suit === 'Spades');
+  if (spades.length > 0) return card.suit === 'Spades';
+
+  return true;
+}
+
+function selectCardClick(suit, rank, player) {
+  if (gameState.current_player !== player) return;
+  selectedCard = {suit, rank};
+  render();
+}
+
+function selectBid(n) {
+  selectedBid = n;
+  render();
+}
+
+function submitBid() {
+  if (!selectedBid) return;
+  const player = gameState.current_player;
+  playMove(player, [{bid: selectedBid}]);
+  selectedBid = null;
+}
+
+function submitCard(player) {
+  if (!selectedCard) return;
+  const hand = gameState.hands[player];
+  const cardDict = hand.find(c => c.suit === selectedCard.suit && c.rank === selectedCard.rank);
+  if (!cardDict) return;
+  playMove(player, [cardDict]);
+}
+
+function throwCard(player) {
+  if (!selectedCard) return;
+  const hand = gameState.hands[player];
+  const cardDict = hand.find(c => c.suit === selectedCard.suit && c.rank === selectedCard.rank);
+  if (!cardDict) return;
+  playMove(player, [{action:'throw', card: cardDict}]);
+}
+
+function declare(player) {
+  playMove(player, [{action:'declare'}]);
+}
+
+// ─── Result modal ─────────────────────────────────────────────────────────
+function showResult(state) {
+  document.getElementById('modal-winner').textContent = state.winner + ' wins!';
+  let scoresHtml = '';
+  const players = Object.keys(state.scores).sort((a,b) => state.scores[b]-state.scores[a]);
+  for (const p of players) {
+    scoresHtml += `<div class="score-row"><span>${p}</span><strong>${state.scores[p]} pts</strong></div>`;
+  }
+  document.getElementById('modal-scores').innerHTML = scoresHtml;
+  document.getElementById('modal-melds').innerHTML = '';
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('result-overlay').classList.remove('show');
+}
+
+// ─── Utilities ────────────────────────────────────────────────────────────
+function showSession() {
+  document.getElementById('session-info').style.display = 'block';
+  document.getElementById('session-display').innerHTML =
+    `<strong>ID:</strong> ${sessionId.slice(0,8)}…`;
+}
+
+function showError(msg) {
+  const area = document.getElementById('game-area');
+  const bar = area.querySelector('.message-bar');
+  if (bar) { bar.className = 'message-bar error'; bar.textContent = '⚠ ' + msg; }
+  else { area.innerHTML = `<div class="message-bar error">⚠ ${msg}</div>` + area.innerHTML; }
+}
+
+function resetUI() {
+  sessionId = null; gameState = null; selectedCard = null; selectedBid = null;
+  document.getElementById('session-info').style.display = 'none';
+  document.getElementById('game-area').innerHTML = `
+    <div class="empty-state"><div class="icon">🃏</div>
+    <p>Choose player count, enter names, and start a game.</p></div>`;
+}
+
+loadGameInfo();
+</script>
+</body>
+</html>
